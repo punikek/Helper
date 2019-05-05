@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -21,11 +21,18 @@ namespace ConsoleApp1
         private bool buildRobot;
         private int damagePercentage;
         private bool buildSkylab;
+        public static int seconds;
 
         public int DamagePercentage
         {
             get => damagePercentage;
             set => damagePercentage = value;
+        }
+
+        public int Seconds
+        {
+            get => seconds;
+            set => seconds = value;
         }
 
         public bool BuildTech
@@ -52,13 +59,14 @@ namespace ConsoleApp1
             set => buildSkylab = value;
         }
 
-        public Settings(int damagePercentage, bool buildTech, bool buildSkylab, bool buildEnergy, bool buildRobot)
+        public Settings(int damagePercentage, bool buildTech, bool buildSkylab, bool buildEnergy, bool buildRobot, int seconds)
         {
             DamagePercentage = damagePercentage;
             BuildTech = buildTech;
             BuildEnergy = buildEnergy;
             BuildRobot = buildRobot;
             BuildSkylab = buildSkylab;
+            Seconds = seconds;
         }
 
     }
@@ -76,7 +84,7 @@ namespace ConsoleApp1
         private int extraEnergy = 0;
         private int c = 0;
 
-        public Account(string apiKey, string server, string sid, string username, string password)
+        public Account(string server, string sid, string username, string password)
         {
             Server = server;
             Sid = sid;
@@ -84,9 +92,9 @@ namespace ConsoleApp1
             Password = password;
         }
 
-        public void AddSettings(int damagePercentage, bool buildTech, bool buildSkylab, bool buildEnergy, bool buildRobot)
+        public void AddSettings(int damagePercentage, bool buildTech, bool buildSkylab, bool buildEnergy, bool buildRobot, int seconds)
         {
-            settings = new Settings(damagePercentage, buildTech, buildSkylab, buildEnergy, buildRobot);
+            settings = new Settings(damagePercentage, buildTech, buildSkylab, buildEnergy, buildRobot, seconds);
         }
 
 
@@ -654,11 +662,10 @@ namespace ConsoleApp1
 
     public class Program
     {
-
         static void Main(string[] args)
         {
-            string version = "v1.3 by ";
-            Console.Title = "Helper v1.3";
+            string version = "v1.4 by ";
+            Console.Title = "Helper v1.4";
             Console.ForegroundColor = ConsoleColor.DarkYellow;
             string path = @"settings.txt";
             string[] accounts;
@@ -669,7 +676,7 @@ namespace ConsoleApp1
                 File.Create(path).Dispose();
                 using (var tw = new StreamWriter(path, true))
                 {
-                    tw.WriteLine("x;server;sid;username;password;repairDronePercentage;buildPrecision(true/false);buildSkylab(true/false);buildEnergyLeech(true/false);buildBattleRobot(true/false)");
+                    tw.WriteLine("server;sid;username;password;repairDronePercentage;buildPrecision(true/false);buildSkylab(true/false);buildEnergyLeech(true/false);buildBattleRobot(true/false);RefreshInSeconds");
                 }
             }
             Console.Write(version);
@@ -695,12 +702,12 @@ namespace ConsoleApp1
                     settings = account.Split(';');
                     if (settings.Length == 10)
                     {
-                        settings[5] = Regex.Replace(settings[5], "[^0-9]", "");
-                        if (settings[2].Length == 32 && int.Parse(settings[5]) >= 0 && int.Parse(settings[5]) <= 99 && int.Parse(settings[5]) >= 1 && (settings[6] == "true" || settings[6] == "false") && (settings[7] == "true" || settings[7] == "false") && (settings[8] == "true" || settings[8] == "false") && (settings[9] == "true" || settings[9] == "false"))
+                        settings[4] = Regex.Replace(settings[4], "[^0-9]", "");
+                        if (settings[1].Length == 32 && int.Parse(settings[4]) >= 0 && int.Parse(settings[4]) <= 99 && int.Parse(settings[4]) >= 1 && (settings[5] == "true" || settings[5] == "false") && (settings[6] == "true" || settings[6] == "false") && (settings[7] == "true" || settings[7] == "false") && (settings[8] == "true" || settings[8] == "false") && int.Parse(settings[9]) > 0)
                         {
-                            a[i] = new Account(settings[0], settings[1], settings[2], settings[3], settings[4]);
+                            a[i] = new Account(settings[0], settings[1], settings[2], settings[3]);
 
-                            a[i].AddSettings(int.Parse(settings[5]), bool.Parse(settings[6]), bool.Parse(settings[7]), bool.Parse(settings[8]), bool.Parse(settings[9]));
+                            a[i].AddSettings(int.Parse(settings[4]), bool.Parse(settings[5]), bool.Parse(settings[6]), bool.Parse(settings[7]), bool.Parse(settings[8]), int.Parse(settings[9]));
 
                             a[i].CheckActivity();
 
@@ -709,12 +716,12 @@ namespace ConsoleApp1
                         else
                             Console.WriteLine("Incorrect account format at line:" + (i + 1) +
                                               "\tCorrect Format is:\n" +
-                                              "x;server;sid;username;password;repairDronePercentage;buildPrecision(true/false);buildSkylab(true/false);buildEnergyLeech(true/false);buildBattleRobot(true/false)");
+                                              "server;sid;username;password;repairDronePercentage;buildPrecision(true/false);buildSkylab(true/false);buildEnergyLeech(true/false);buildBattleRobot(true/false);RefreshInSeconds");
                     }
                     else
                         Console.WriteLine("Incorrect account format at line:" + (i + 1) +
                                           "\tCorrect Format is:\n" +
-                                          "x;server;sid;username;password;repairDronePercentage;buildPrecision(true/false);buildSkylab(true/false);buildEnergyLeech(true/false);buildBattleRobot(true/false)");
+                                          "server;sid;username;password;repairDronePercentage;buildPrecision(true/false);buildSkylab(true/false);buildEnergyLeech(true/false);buildBattleRobot(true/false);RefreshInSeconds");
                     i++;
                 }
 
@@ -764,7 +771,7 @@ namespace ConsoleApp1
 
             void StartTimer(Account acc)
             {
-                System.Timers.Timer t = new System.Timers.Timer(TimeSpan.FromMinutes(3).TotalMilliseconds)
+                System.Timers.Timer t = new System.Timers.Timer(TimeSpan.FromSeconds(Settings.seconds).TotalMilliseconds)
                 {
                     AutoReset = true
                 }; // Set the time (5 mins in this case)
